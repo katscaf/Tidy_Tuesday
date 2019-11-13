@@ -1,0 +1,58 @@
+#Load data from TidyTuesday github
+commute_mode <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-11-05/commute.csv")
+View(commute_mode)
+
+# Load libraries
+library(dplyr)
+library(collapsibleTree) 
+library(htmlwidgets)
+
+
+#Make a new dataframe extracting the columns of infor I want (so state, mode, percent, and region)
+new_data<-commute_mode[,c(2,4,6,9)]
+View(new_data)
+
+#group the data
+grouped_data<-new_data %>% group_by(state_region, state, mode)
+View(grouped_data)
+
+#get a summary of the new grouped dataset with the averages of the percent column organized by mode per state
+grouped_data %>% summarise(
+  n = mean(percent)
+)
+q<-grouped_data %>% filter(percent == max(percent))
+View(q)
+
+#I'm getting rid of NAs to make this code easier to produce the graph
+clean_dat1<-na.omit(q)
+View(clean_dat1)
+
+#Concatinate the two columns I will want to collapse together in the next few lines
+cols<-c('mode', 'percent')
+cols
+
+# Create a new column `x` with the two columns collapsed together
+#I'm doing this so to create the label for when you hover your mouse over the mode per state, you get the averages
+clean_dat1$x <- apply( clean_dat1[ , cols ] , 1 , paste , collapse = "-" )
+View(clean_dat1)
+
+#Now let's get this graph cookin!
+#Root is the name you want the first main node to be
+#Hierarchy is the order from your data sheet of what you want each node to be nested in
+#Node size is what you can use to visually show the differences by the node size, so even though I will
+#have the info pop up when you hover over the last node, the visual differnce of the node sizes is more eyecatching
+h<-collapsibleTree(
+  clean_dat1,
+  root = "Commuters",
+  hierarchy = c("state_region", "state", "x"),
+  nodeSize = "percent",
+  width = 1500,
+  zoomable = FALSE
+)
+
+h
+
+#save the widget
+saveWidget(h, file="dendrogram.html")
+
+#Voila!
